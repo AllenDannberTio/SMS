@@ -1,4 +1,5 @@
-﻿using SMS.App.Views.IViews;
+﻿using Microsoft.EntityFrameworkCore;
+using SMS.App.Views.IViews;
 using SMS.Domain;
 using SMS.Infastructure.Data;
 using System;
@@ -26,13 +27,28 @@ namespace SMS.App.Presenters
             _programView.ReadEvent += ReadEvent;
             _programView.UpdateEvent += UpdateEvent;
             _programView.DeleteEvent += DeleteEvent;
-            
+            _programView.GetInfoEvent += GetInfoEvent;
+            LoadProgramList();
             _programView.GetProgramList(_bindingSource);
         }
 
-        private void LoadProgramList()
+        private void GetInfoEvent(object? sender, EventArgs e)
+        {
+            var entity = (Programs)_bindingSource.Current;
+
+            _programView.ProgramId = entity.ProgramId;
+            _programView.ProgramName = entity.ProgramName;
+            _programView.Description = entity.Description;
+        }
+
+        private void LoadProgramList(string? search = null)
         {
             _programList = _dbContext.Programs.ToList();
+            _bindingSource.DataSource = _programList;
+            if (search != null) { 
+            _programList = _programList.Where(a=> a.ProgramId.ToString().Contains(search) || a.ProgramName.Contains(search));
+            
+            }
             _bindingSource.DataSource = _programList;
         }
 
@@ -43,25 +59,25 @@ namespace SMS.App.Presenters
 
         private void UpdateEvent(object? sender, EventArgs e)
         {
-            throw new NotImplementedException();
+
         }
 
-        private void ReadEvent(object? sender, EventArgs e)
+        private async void ReadEvent(object? sender, EventArgs e)
         {
-            LoadProgramList();
+         LoadProgramList(_programView.SearchValue);
         }
 
-        private void CreateEvent(object? sender, EventArgs e)
+        private async void CreateEvent(object? sender, EventArgs e)
         {
             var program = new Programs
             {
                 ProgramName = _programView.ProgramName,
                 Description = _programView.Description
             };
-            _dbContext.Programs.Add(program);
-            _dbContext.SaveChanges(); 
-            
+            await _dbContext.Programs.AddAsync(program);
+            await _dbContext.SaveChangesAsync();
+            _programView.SetMessage("Nice Ka Choi Program Created Succesfully");
             LoadProgramList();
-        }
+        }   
     }
 }
